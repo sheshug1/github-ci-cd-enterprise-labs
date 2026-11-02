@@ -1,11 +1,14 @@
+
 name: Python CI
 
 on:
   push:
     branches:
       - main
+
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
   workflow_dispatch:
 
@@ -44,7 +47,9 @@ jobs:
           python-version: "3.13"
 
       - name: Run tests and save report
-        run: python -m unittest discover -s tests -v 2>&1 | tee test-results.txt
+        run: |
+          set -o pipefail
+          python -m unittest discover -s tests -v 2>&1 | tee test-results.txt
 
       - name: Upload test report
         uses: actions/upload-artifact@v7
@@ -53,9 +58,32 @@ jobs:
           path: test-results.txt
           retention-days: 5
 
+  build-metadata:
+    name: Generate build metadata
+    runs-on: ubuntu-latest
+
+    outputs:
+      app_version: ${{ steps.metadata.outputs.app_version }}
+      deploy_target: ${{ steps.metadata.outputs.deploy_target }}
+
+    steps:
+      - name: Generate metadata
+        id: metadata
+        shell: bash
+        run: |
+          echo "app_version=1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            echo "deploy_target=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy_target=testing" >> "$GITHUB_OUTPUT"
+          fi
+
   report:
-    name: Download and inspect report
-    needs: unit-tests
+    name: Download report and use outputs
+    needs:
+      - unit-tests
+      - build-metadata
     runs-on: ubuntu-latest
 
     steps:
@@ -67,3 +95,19 @@ jobs:
 
       - name: Display test report
         run: cat artifacts/test-results.txt
+
+      - name: Display metadata from another job
+        env:
+          APP_VERSION: ${{ needs.build-metadata.outputs.app_version }}
+          DEPLOY_TARGET: ${{ needs.build-metadata.outputs.deploy_target }}
+        run: |
+          echo "Application version: $APP_VERSION"
+          echo "Deployment target: $DEPLOY_TARGET"
+
+      - name: Simulate production deployment step
+        if: needs.build-metadata.outputs.deploy_target == 'production'
+        run: echo "Production path selected. No deployment performed."
+
+      - name: Simulate testing step
+        if: needs.build-metadata.outputs.deploy_target == 'testing'
+        run: echo "Testing path selected. No deployment performed."
