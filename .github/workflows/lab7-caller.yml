@@ -1,0 +1,38 @@
+
+name: Lab 7 - Reusable Workflow
+
+on:
+  push:
+    branches:
+      - lab7-reusable-workflow
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  run-reusable-ci:
+    name: Call reusable Python CI
+
+    uses: ./.github/workflows/reusable-python-ci.yml
+
+    with:
+      app-name: "Enterprise CI/CD Lab"
+      python-version: "3.13"
+
+    permissions:
+      contents: read
+
+  display-result:
+    name: Display reusable workflow result
+    needs: run-reusable-ci
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Display test summary
+        env:
+          TEST_SUMMARY: ${{ needs.run-reusable-ci.outputs.test-summary }}
+        run: echo "$TEST_SUMMARY"

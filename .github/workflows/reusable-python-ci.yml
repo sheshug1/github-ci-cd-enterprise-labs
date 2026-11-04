@@ -1,0 +1,61 @@
+
+name: Reusable Python CI
+
+on:
+  workflow_call:
+
+    inputs:
+      app-name:
+        description: "Application name"
+        required: true
+        type: string
+
+      python-version:
+        description: "Python runtime version"
+        required: false
+        default: "3.13"
+        type: string
+
+    outputs:
+      test-summary:
+        description: "Result from the Python test job"
+        value: ${{ jobs.python-tests.outputs.test-summary }}
+
+jobs:
+
+  python-tests:
+    name: Build and test Python application
+    runs-on: ubuntu-latest
+
+    outputs:
+      test-summary: ${{ steps.summary.outputs.message }}
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Display application information
+        env:
+          APP_NAME: ${{ inputs.app-name }}
+          PYTHON_VERSION: ${{ inputs.python-version }}
+        run: |
+          echo "Application: $APP_NAME"
+          echo "Python version: $PYTHON_VERSION"
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Generate test summary
+        id: summary
+        shell: bash
+        env:
+          APP_NAME: ${{ inputs.app-name }}
+          PYTHON_VERSION: ${{ inputs.python-version }}
+        run: |
+          echo "message=$APP_NAME tests passed on Python $PYTHON_VERSION" >> "$GITHUB_OUTPUT"
