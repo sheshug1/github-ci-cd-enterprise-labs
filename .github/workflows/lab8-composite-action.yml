@@ -1,0 +1,29 @@
+
+name: Lab 8 - Composite Action
+
+on:
+  push:
+    branches:
+      - lab8-composite-actions
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  run-python-ci:
+    name: Execute custom Python CI action
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout source code
+        uses: actions/checkout@v7
+
+      - name: Execute our composite action
+        uses: ./.github/actions/python-ci
+        with:
+          app-name: "Enterprise CI/CD Lab"
+          python-version: "3.13"
