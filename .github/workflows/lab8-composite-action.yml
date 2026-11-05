@@ -4,6 +4,7 @@ name: Lab 8 - Composite Action
 on:
   push:
     branches:
+      - main
       - lab8-composite-actions
 
   workflow_dispatch:
